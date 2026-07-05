@@ -404,6 +404,7 @@
   .cap-btn.danger:hover{background:var(--brick);color:#fff}
   /* ---- day calendar ---- */
   .daycal{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);box-shadow:var(--shadow)}
+  .dc-block{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .dc-hr{position:relative;border-top:1px solid var(--line2);padding-left:56px;cursor:pointer}
   .dc-hr:first-child{border-top:0}
   .dc-hr.placing:hover{background:var(--side)}
@@ -1671,14 +1672,14 @@
     var i=slotOfUid(uid);
     if(i>=0){ top3[i]=null; }
     else { var free=top3.indexOf(null); if(free<0){ openUI('Top 3 is full','<div class="readonly-note">Three is the ceiling. Clear one of today\'s three (tap its ★) before starring another.</div>',null); return; } top3[free]=uid; }
-    renderTop3(); renderTasks();
+    renderTop3(); renderTasks(); if(window.__commit) window.__commit();
   }
   function placeInSlot(i){                  // used by the slot picker in Edit
     if(!curTask) return; var uid=curTask.uid; pruneTop3();
     var cur=slotOfUid(uid);
     if(cur===i){ top3[i]=null; }
     else { if(cur>=0) top3[cur]=null; top3[i]=uid; }
-    renderSlots(); renderTop3(); renderTasks();
+    renderSlots(); renderTop3(); renderTasks(); if(window.__commit) window.__commit();
   }
   function renderSlots(){
     var uid=curTask?curTask.uid:null;
@@ -1899,6 +1900,7 @@
   function snapHour(px){ var h=CAL_START + px/HOUR_PX; h=Math.round(h*2)/2; return Math.max(CAL_START, Math.min(CAL_END, h)); }
   function initCalDrag(){
     var cal=document.getElementById('daycal'); if(!cal||cal.__dragInit) return; cal.__dragInit=true;
+    cal.addEventListener('contextmenu', function(e){ if(e.target.closest('.dc-block')) e.preventDefault(); });
     var st=null;
     cal.addEventListener('pointerdown', function(e){
       var blk=e.target.closest('.dc-block'); if(!blk) return;
@@ -2819,9 +2821,10 @@
   function loadLocal(){ try{ var r=localStorage.getItem(PKEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
   var __lastSig='';
   function __sig(){ var s=snapshot(); s.ts=0; return JSON.stringify(s); }
-  function persistTick(){ rollRoutines(); syncGroom(); var c=__sig(); if(c!==__lastSig){ __lastSig=c; __lastChangeTs=Date.now(); saveLocal(); if(window.__cloudSave) window.__cloudSave(); } }
+  function persistTick(){ rollRoutines(); syncGroom(); var c=__sig(); if(c!==__lastSig){ __lastSig=c; __lastChangeTs=Date.now(); window.__lastEdit=Date.now(); saveLocal(); if(window.__cloudSave) window.__cloudSave(); } }
   // expose for the cloud layer
   window.__snapshot=snapshot; window.__applySnap=applySnap; window.__loadLocal=loadLocal; window.__saveLocal=saveLocal;
+  window.__commit=function(){ __lastChangeTs=Date.now(); window.__lastEdit=Date.now(); saveLocal(); __lastSig=__sig(); if(window.__cloudSave) window.__cloudSave(); };
 
   var __boot=loadLocal(); if(__boot){ applySnap(__boot, false); __lastChangeTs=__boot.ts||0; }
   try{ if(localStorage.getItem('lifeos_tombreset')!=='v14'){ __tombs=[]; localStorage.setItem('lifeos_tombreset','v14'); } }catch(e){}
@@ -2856,7 +2859,7 @@
   var user=null, __session=null;
   sb.auth.onAuthStateChange(function(_e, s){ __session=s; if(s&&s.access_token){ try{ sb.realtime.setAuth(s.access_token); }catch(e){} } });
 
-  var APP_VER='v20';
+  var APP_VER='v21';
   function nowHM(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function taskCount(){ try{ return (window.__snapshot().tasks||[]).length; }catch(e){ return '?'; } }
   function syncStat(msg){ var el=document.getElementById('syncStat'); if(el){
@@ -2897,7 +2900,7 @@
       var merged = window.__mergeSnaps ? window.__mergeSnaps(cloud, local) : cloud;
       var mj=JSON.stringify(merged), lj=JSON.stringify(local);
       var changed=(mj!==lj);
-      if(changed){ window.__applySnap(merged, true); if(window.__saveLocal) window.__saveLocal(); }
+      if(changed){ if(Date.now()-(window.__lastEdit||0) < 3500){ if(window.__cloudSave) window.__cloudSave(); } else { window.__applySnap(merged, true); if(window.__saveLocal) window.__saveLocal(); } }
       if(mj!==JSON.stringify(cloud)){ try{ merged._wv=APP_VER; sb.from('app_state').upsert({user_id:user.id,data:merged}).then(function(){},function(){}); }catch(e){} }
       syncStat((changed?'\u2193 Pulled — now ':'\u2713 In sync — ')+((merged.tasks||[]).length)+' tasks · '+nowHM());
     }, function(){ syncStat('Pull failed — offline?'); }); }
