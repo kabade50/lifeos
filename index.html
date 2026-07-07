@@ -174,6 +174,12 @@
 
   /* detail / forms */
   .back{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;display:inline-block;margin-bottom:22px}
+  .ne-metabar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .ne-title{width:100%;border:none;outline:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:27px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:2px 0 12px;padding:0}
+  .ne-title::placeholder{color:var(--faint)}
+  .ne-body{width:100%;border:none;outline:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;line-height:1.62;color:var(--ink);resize:none;min-height:240px;padding:0;overflow:hidden}
+  .ne-body::placeholder{color:var(--faint)}
+  .ne-imgbar{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
   .dstate{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
   .dstate .v{color:var(--h)}
   .dh{font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:500;letter-spacing:-.015em;line-height:1.1}
@@ -1157,39 +1163,27 @@
 
     <!-- LIBRARY -->
     <section class="view" id="library"><div class="wrap">
-      <div class="lbl pe">Archive</div><div class="ph serif">Library <span style="font-size:14px;color:var(--faint);font-family:'IBM Plex Mono'">263 entries</span></div>
+      <div class="lbl pe">Archive</div><div class="ph serif">Library <span id="libCount" style="font-size:14px;color:var(--faint);font-family:'IBM Plex Mono'"></span></div>
       <div class="rule"></div>
-      <div class="tabrow"><span class="tab on">All</span><span class="tab">Journal</span><span class="tab">Notes</span><span class="tab">Quotes</span><span class="tab">Books</span></div>
+      <div class="addrow-caps" style="margin:12px 0"><button class="cap-btn accent" onclick="openNewNote()">+ New entry</button></div>
+      <div class="tabrow" id="libTabs">
+        <span class="tab on" data-libtab="all" onclick="libTab('all')">All</span>
+        <span class="tab" data-libtab="journal" onclick="libTab('journal')">Journal</span>
+        <span class="tab" data-libtab="note" onclick="libTab('note')">Notes</span>
+        <span class="tab" data-libtab="quote" onclick="libTab('quote')">Quotes</span>
+        <span class="tab" data-libtab="book" onclick="libTab('book')">Books</span>
+      </div>
+      <div id="libList" style="margin-top:14px"></div>
+    </div></section>
 
-      <div class="le" style="margin-top:14px"><div class="lm"><span>Journal &middot; <span class="voice">via voice</span></span><span>26 Jun</span></div>
-        <div class="lt">Good momentum, but the evening slipped</div>
-        <div class="lbod">Did the study hour and felt sharp. Then dinner, YouTube, and the night dissolved. The guard hour is the hinge — when I keep it, the next morning holds.</div>
-        <div class="limg"><div></div><div></div></div></div>
-
-      <div class="le"><div class="lm"><span>Note &middot; reading response</span><span>14 Mar</span></div>
-        <div class="lt">Direction is the filter, not the fuel</div>
-        <div class="lbod">Without direction all five levers are efficiently pointed at nothing. Every hour passes through one question: does this serve my direction or not?</div>
-        <div class="ltg"><span>#swarajya</span><span>#direction</span><span>#framework</span></div></div>
-
-      <div class="le"><div class="lm"><span>Quote &middot; own</span><span>9 Mar</span></div>
-        <div class="lt">"Design the conditions, not the willpower."</div>
-        <div class="lbod">The person I want to become should be the automatic, natural, inevitable result of the environment I build.</div>
-        <div class="ltg"><span>#environment</span><span>#habits</span></div></div>
-
-      <div class="le"><div class="lm"><span>Book &middot; highlight</span><span>2 Mar</span></div>
-        <div class="lt">On postponement</div>
-        <div class="lbod">Five triggers behind every delay: vagueness, heaviness, no urgency, no order, wrong energy. Postponement is psychological, not motivational.</div>
-        <div class="ltg"><span>#action</span><span>#lever5</span></div></div>
-
-      <div class="le"><div class="lm"><span>Note &middot; principle</span><span>2 Mar</span></div>
-        <div class="lt">How to set a task's priority</div>
-        <div class="lbod">Four quadrants. Urgent &amp; important → do now (deadline + real consequence). Important, not urgent → schedule it; this is where the forward work lives. Urgent, not important → minimise or delegate. Neither → drop it. Most things that feel urgent are only urgent — be honest about what's actually important.</div>
-        <div class="ltg"><span>#priority</span><span>#lever5</span><span>#action</span></div></div>
-
-      <div class="le"><div class="lm"><span>Note &middot; principle</span><span>2 Mar</span></div>
-        <div class="lt">The escalation ladder</div>
-        <div class="lbod">When stuck past the time you allotted: self → search → ask → workaround → reframe. Decide the exit before starting, not after an hour of circling.</div>
-        <div class="ltg"><span>#action</span><span>#lever5</span></div></div>
+    <!-- FULL-PAGE NOTE EDITOR -->
+    <section class="view" id="noteedit"><div class="wrap" style="max-width:680px">
+      <span class="back" onclick="closeNote()">&larr; Library</span>
+      <div class="ne-metabar" id="neMeta"></div>
+      <input id="neTitle" class="ne-title" placeholder="Title" oninput="neEdit()" />
+      <textarea id="neBody" class="ne-body" placeholder="Write freely…" oninput="neEdit();neGrow()"></textarea>
+      <div class="ne-imgbar"><div id="neImgs"></div><button type="button" class="cap-btn ghost" onclick="addNoteImage()">+ Add image</button></div>
+      <div style="margin-top:22px"><button class="cap-btn brick" onclick="deleteCurNote()">Delete entry</button></div>
     </div></section>
 
   </div>
@@ -1365,7 +1359,7 @@
     var t={id:nextId++,uid:genUid(),mt:Date.now(),title:v,done:false,subs:[],tags:[]};
     tasks.push(t); inp.value='';
     __capState={id:t.id,sec:0,prio:0,due:0,time:0};
-    renderCapDetail(); renderTasks();
+    renderCapDetail(); renderTasks(); if(window.__commit)window.__commit();
   }
   function capLbl(k){
     var s=__capState; var val=__capCycles[k][s[k]];
@@ -1395,7 +1389,7 @@
     if(__capCycles.due[s.due]) t.due='today'; 
     t.time=__capCycles.time[s.time]||undefined;
     return t; }
-  function capDone(apply){ if(apply) capApply(); __capState=null; renderCapDetail(); renderTasks(); }
+  function capDone(apply){ if(apply) capApply(); __capState=null; renderCapDetail(); renderTasks(); if(window.__commit)window.__commit(); }
   function capMore(){ var t=capApply(); __capState=null; renderCapDetail(); if(t){ curTask=t; editTask(); } }
   (function(){ var ci=document.getElementById('capNew'); if(!ci) return;
     ci.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.keyCode===13){ e.preventDefault(); quickCapture(); } });
@@ -1456,7 +1450,7 @@
     curTask.done=computeDone(curTask);
     st.textContent=curTask.done?'Done':'Open';
   }
-  function toggleWholeTask(){ curTask.done=!curTask.done; renderViewSubs(); }
+  function toggleWholeTask(){ curTask.done=!curTask.done; renderViewSubs(); if(window.__commit)window.__commit(); }
 
   // ---------- TASK EDIT (planning) ----------
   var prioLabels={p1:'Imp & Urg',p2:'Imp',p3:'Urg',p4:'Neither'};
@@ -1639,7 +1633,7 @@
   function showOnly(id){
     document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id===id);});
     document.body.dataset.view=id;
-    var nv=({taskview:'tasks',taskedit:'tasks',projdetail:'projects',routinedetail:'routines',distdetail:'routines'})[id]||id;
+    var nv=({taskview:'tasks',taskedit:'tasks',projdetail:'projects',routinedetail:'routines',distdetail:'routines',noteedit:'library'})[id]||id;
     document.querySelectorAll('.nav a').forEach(function(a){a.classList.toggle('on',a.dataset.v===nv);});
     document.querySelector('.canvas').scrollTop=0;
   }
@@ -1720,6 +1714,7 @@
     if(id==='projects') renderProjects();
     if(id==='routines'){ renderRoutines(); renderDistractions(); }
     if(id==='dashboard') renderDashboard();
+    if(id==='library') renderLibrary();
     try{ if(['dashboard','today','tasks','routines','projects','library','settings'].indexOf(id)>=0) localStorage.setItem('lifeos_view',id); }catch(e){}
   }
   function setTheme(name){
@@ -1930,8 +1925,8 @@
       }
       // no movement → treat as a TAP regardless of press duration
       if(s.onCk){
-        if(s.onCk.dataset.rdone!=null){ var rr=routines[+s.onCk.dataset.rdone]; rr.done=!rr.done; rr.hist[89]=rr.done; renderDayCal(); renderRoutines(); }
-        else if(s.onCk.dataset.tdone!=null){ setTaskDone(+s.onCk.dataset.tdone); renderToday(); renderTasks(); }
+        if(s.onCk.dataset.rdone!=null){ var rr=routines[+s.onCk.dataset.rdone]; rr.done=!rr.done; rr.hist[89]=rr.done; renderDayCal(); renderRoutines(); if(window.__commit)window.__commit(); }
+        else if(s.onCk.dataset.tdone!=null){ setTaskDone(+s.onCk.dataset.tdone); renderToday(); renderTasks(); if(window.__commit)window.__commit(); }
         return;
       }
       if(s.onX){ var ut=tasks.find(function(x){return x.id===+s.onX.dataset.unsched;}); if(ut) ut.schedHour=null; renderToday(); return; }
@@ -2004,6 +1999,86 @@
 
   // ---- in-app modal + mini calendar (replaces blocked prompt()) ----
   var __uiOk=null, uiCalY, uiCalM, uiPickDate=null;
+  // ---------- LIBRARY (journal / notes / quotes / books) ----------
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var LKIND={journal:'Journal',note:'Note',quote:'Quote',book:'Book'};
+  function libTab(k){ libFilter=k; renderLibrary(); }
+  function renderLibrary(){
+    var list=document.getElementById('libList'); if(!list) return;
+    var cnt=document.getElementById('libCount'); if(cnt) cnt.textContent=notes.length?(notes.length+(notes.length===1?' entry':' entries')):'';
+    document.querySelectorAll('#libTabs .tab').forEach(function(t){ t.classList.toggle('on', t.dataset.libtab===libFilter); });
+    var items=notes.filter(function(n){ return libFilter==='all'||n.kind===libFilter; });
+    items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||'') || (b.mt||0)-(a.mt||0); });
+    if(!items.length){ list.innerHTML='<div style="color:var(--muted);padding:22px 4px;line-height:1.5">Nothing here yet. Tap <b>+ New entry</b> to save a journal note, idea, quote, or book highlight — it syncs across your devices.</div>'; return; }
+    list.innerHTML=items.map(function(n){
+      var tags=(n.tags&&n.tags.length)?'<div class="ltg">'+n.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>':'';
+      var d=n.date?fmtDate(n.date):'';
+      var body=n.body?'<div class="lbod">'+esc(n.body)+'</div>':'';
+      var imgs=(n.imgs&&n.imgs.length)?'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+n.imgs.slice(0,4).map(function(iid){return '<img data-imgid="'+iid+'" style="width:56px;height:56px;object-fit:cover;border-radius:8px;background:var(--line)"/>';}).join('')+'</div>':'';
+      return '<div class="le" onclick="openNote('+n.id+')"><div class="lm"><span>'+(LKIND[n.kind]||'Note')+'</span><span>'+d+'</span></div><div class="lt">'+esc(n.title||'Untitled')+'</div>'+body+imgs+tags+'</div>';
+    }).join(''); hydrateImgs(list);
+  }
+  // ---- on-device image store (IndexedDB) — images stay on THIS device; note text still syncs ----
+  var __IDB=null;
+  function idbOpen(){ if(__IDB) return __IDB; __IDB=new Promise(function(res,rej){ try{ var r=indexedDB.open('lifeos_media',1); r.onupgradeneeded=function(){ if(!r.result.objectStoreNames.contains('imgs')) r.result.createObjectStore('imgs'); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }catch(e){ rej(e); } }); return __IDB; }
+  function idbPut(k,v){ return idbOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('imgs','readwrite'); tx.objectStore('imgs').put(v,k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+  function idbGet(k){ return idbOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('imgs','readonly'); var q=tx.objectStore('imgs').get(k); q.onsuccess=function(){res(q.result||null);}; q.onerror=function(){rej(q.error);}; }); }); }
+  function idbDel(k){ return idbOpen().then(function(db){ return new Promise(function(res){ try{ var tx=db.transaction('imgs','readwrite'); tx.objectStore('imgs').delete(k); tx.oncomplete=function(){res();}; tx.onerror=function(){res();}; }catch(e){res();} }); }).catch(function(){}); }
+  function compressImage(file,maxDim,q){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ var img=new Image(); img.onload=function(){ var w=img.width,h=img.height,sc=Math.min(1,maxDim/Math.max(w,h)); var cw=Math.max(1,Math.round(w*sc)),ch=Math.max(1,Math.round(h*sc)); var c=document.createElement('canvas'); c.width=cw; c.height=ch; c.getContext('2d').drawImage(img,0,0,cw,ch); try{ res(c.toDataURL('image/jpeg',q)); }catch(e){ rej(e); } }; img.onerror=rej; img.src=fr.result; }; fr.onerror=rej; fr.readAsDataURL(file); }); }
+  function hydrateImgs(container){ if(!container) return; container.querySelectorAll('img[data-imgid]').forEach(function(im){ var id=im.dataset.imgid; idbGet(id).then(function(durl){ if(durl){ im.src=durl; } else { var ph=document.createElement('div'); ph.style.cssText='width:'+(im.style.width||'56px')+';height:'+(im.style.height||'56px')+';border-radius:10px;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);text-align:center;padding:4px;line-height:1.2'; ph.textContent='on another device'; if(im.parentNode) im.replaceWith(ph); } }).catch(function(){}); }); }
+  function addNoteImage(){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f) return; var sb=document.getElementById('uiSaveBtn'); if(sb) sb.textContent='Saving image\u2026'; compressImage(f,1200,0.72).then(function(durl){ var id='img_'+genUid(); return idbPut(id,durl).then(function(){ __noteDraftImgs.push(id); renderNoteImgs(); if(sb) sb.textContent='Save'; }); }).catch(function(){ if(sb) sb.textContent='Save'; }); }; inp.click(); }
+  function removeNoteImage(id){ __noteDraftImgs=__noteDraftImgs.filter(function(x){return x!==id;}); idbDel(id); renderNoteImgs(); }
+  function renderNoteImgs(){ var box=document.getElementById('uiImgs'); if(!box) return; if(!__noteDraftImgs.length){ box.innerHTML='<div style="color:var(--faint);font-size:12px">No images yet \u2014 they stay on this device.</div>'; return; } box.innerHTML=__noteDraftImgs.map(function(id){ return '<div style="position:relative;display:inline-block;margin:0 8px 8px 0"><img data-imgid="'+id+'" style="width:72px;height:72px;object-fit:cover;border-radius:10px;background:var(--line)"/><span onclick="removeNoteImage(\''+id+'\')" style="position:absolute;top:-6px;right:-6px;background:#8E4B3C;color:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;line-height:18px;text-align:center;cursor:pointer">&times;</span></div>'; }).join(''); hydrateImgs(box); }
+  // ---------- full-page note editor ----------
+  var __curNoteId=null, __neSaveT=null;
+  function curNote(){ return notes.find(function(x){return x.id===__curNoteId;}); }
+  function openNewNote(){ var n={id:nextNoteId++,uid:genUid(),mt:Date.now(),created:todayStr(),kind:'note',title:'',body:'',tags:[],date:todayStr(),imgs:[]}; notes.unshift(n); __curNoteId=n.id; showOnly('noteedit'); renderNoteEditor(); setTimeout(function(){ var t=document.getElementById('neTitle'); if(t) t.focus(); },60); }
+  function openNote(id){ __curNoteId=id; showOnly('noteedit'); renderNoteEditor(); }
+  function renderNoteEditor(){
+    var n=curNote(); if(!n) return;
+    var kinds=['journal','note','quote','book'];
+    document.getElementById('neMeta').innerHTML=
+      '<div class="fgrow" id="neKind">'+kinds.map(function(k){return '<span class="fp'+(n.kind===k?' on':'')+'" data-nekind="'+k+'" onclick="neSetKind(\''+k+'\')">'+LKIND[k]+'</span>';}).join('')+'</div>'+
+      '<input id="neDate" type="date" class="in" style="width:auto;padding:5px 9px;font-size:12px" value="'+(n.date||todayStr())+'" onchange="neEdit()"/>'+
+      '<input id="neTags" class="in" style="flex:1;min-width:120px;padding:5px 9px;font-size:12px" placeholder="tags, comma-separated" value="'+esc((n.tags||[]).join(', '))+'" oninput="neEdit()"/>';
+    document.getElementById('neTitle').value=n.title||'';
+    document.getElementById('neBody').value=n.body||'';
+    neGrow(); renderNoteImgs();
+  }
+  function neGrow(){ var t=document.getElementById('neBody'); if(t){ t.style.height='auto'; t.style.height=Math.max(240,t.scrollHeight)+'px'; } }
+  function neSetKind(k){ var n=curNote(); if(!n) return; n.kind=k; document.querySelectorAll('#neKind .fp').forEach(function(c){ c.classList.toggle('on', c.dataset.nekind===k); }); neEdit(); }
+  function neEdit(){
+    var n=curNote(); if(!n) return;
+    var t=document.getElementById('neTitle'), bd=document.getElementById('neBody'), dt=document.getElementById('neDate'), tg=document.getElementById('neTags');
+    if(t) n.title=t.value;
+    if(bd) n.body=bd.value;
+    if(dt) n.date=dt.value||todayStr();
+    if(tg) n.tags=tg.value.split(',').map(function(x){return x.trim().replace(/^#/,'');}).filter(Boolean);
+    n.mt=Date.now();
+    clearTimeout(__neSaveT); __neSaveT=setTimeout(function(){ if(window.__commit) window.__commit(); }, 500);
+  }
+  function closeNote(){
+    var n=curNote();
+    if(n){ n.title=(n.title||'').trim(); n.body=(n.body||'').replace(/\s+$/,'');
+      var empty=!n.title && !n.body && !(n.imgs&&n.imgs.length);
+      if(empty){ if(window.__tombItem) window.__tombItem(n); notes=notes.filter(function(x){return x.id!==n.id;}); }
+      else { n.mt=Date.now(); }
+    }
+    __curNoteId=null; renderLibrary(); if(window.__commit) window.__commit(); go('library');
+  }
+  function deleteCurNote(){
+    var n=curNote(); if(n){ (n.imgs||[]).forEach(function(iid){ idbDel(iid); }); if(window.__tombItem) window.__tombItem(n); notes=notes.filter(function(x){return x.id!==n.id;}); }
+    __curNoteId=null; renderLibrary(); if(window.__commit) window.__commit(); go('library');
+  }
+  // images (on-device) for the page editor
+  function renderNoteImgs(){
+    var box=document.getElementById('neImgs'); if(!box) return; var n=curNote(); var imgs=(n&&n.imgs)?n.imgs:[];
+    if(!imgs.length){ box.innerHTML='<div style="color:var(--faint);font-size:12px;margin-bottom:8px">No images yet \u2014 they stay on this device.</div>'; return; }
+    box.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+imgs.map(function(id){ return '<div style="position:relative"><img data-imgid="'+id+'" style="width:82px;height:82px;object-fit:cover;border-radius:10px;background:var(--line)"/><span onclick="removeNoteImage(\''+id+'\')" style="position:absolute;top:-6px;right:-6px;background:#8E4B3C;color:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;line-height:18px;text-align:center;cursor:pointer">&times;</span></div>'; }).join('')+'</div>';
+    hydrateImgs(box);
+  }
+  function addNoteImage(){ var n=curNote(); if(!n) return; var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f) return; compressImage(f,1200,0.72).then(function(durl){ var id='img_'+genUid(); return idbPut(id,durl).then(function(){ n.imgs=n.imgs||[]; n.imgs.push(id); n.mt=Date.now(); renderNoteImgs(); if(window.__commit) window.__commit(); }); }).catch(function(){}); }; inp.click(); }
+  function removeNoteImage(id){ var n=curNote(); if(!n) return; n.imgs=(n.imgs||[]).filter(function(x){return x!==id;}); n.mt=Date.now(); idbDel(id); renderNoteImgs(); if(window.__commit) window.__commit(); }
   function openUI(title, bodyHTML, onOk){
     document.getElementById('uiTitle').textContent=title;
     document.getElementById('uiBody').innerHTML=bodyHTML;
@@ -2157,7 +2232,7 @@
     if(stopped.length){ html+='<div class="rpart">Stopped</div>'; stopped.forEach(function(r){ html+='<div class="rrow"><span class="rdot" style="background:var(--faint)"></span><span class="rname done" data-ropen="'+r.id+'">'+r.title+'<small>stopped</small></span><span class="vl" style="margin-left:auto" onclick="event.stopPropagation();stopRoutine('+r.id+')">Resume</span></div>'; }); }
     list.innerHTML=html;
   }
-  function toggleRoutine(id){ var r=routines.find(function(x){return x.id===id;}); if(!r) return; r.done=!r.done; r.hist[HN-1]=r.done; renderRoutines(); renderDayCal(); renderSlipping(); }
+  function toggleRoutine(id){ var r=routines.find(function(x){return x.id===id;}); if(!r) return; r.done=!r.done; r.hist[HN-1]=r.done; renderRoutines(); renderDayCal(); renderSlipping(); if(window.__commit)window.__commit(); }
   function stopRoutine(id){ var r=routines.find(function(x){return x.id===id;}); if(!r) return; if(r.stopped){ delete r.stopped; } else { r.stopped=todayStr(); r.done=false; } renderRoutines(); renderDayCal(); openRoutineDetail(id); }
 
   var rdPeriod=30, rdId=null;
@@ -2248,6 +2323,7 @@
   var distractions=[];
   distractions.forEach(function(dx){ dx.log.forEach(function(e){ if(e.outcome==='avoided') e.method=dx.methods[Math.floor(Math.random()*dx.methods.length)].name; }); });
   var nextDid=1, __tempt={}, ddxId=null, __editDistId=null, __dmethods=[];
+  var notes=[], nextNoteId=1, libFilter='all', __editNoteId=null, __noteDraftImgs=[];
 
   function distCounts(dx){ var a=0,i=0; dx.log.forEach(function(e){ if(e.outcome==='avoided')a++; else i++; }); return {av:a,in:i,total:a+i}; }
   function cleanStreak(dx){ var s=0; for(var d=0;d<90;d++){ var dt=new Date(); dt.setDate(dt.getDate()-d); var ds=dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()); var slip=dx.log.some(function(e){return e.date===ds&&e.outcome==='indulged';}); if(slip)break; s++; } return s; }
@@ -2617,9 +2693,9 @@
     if(expc){ e.stopPropagation(); var sx=document.getElementById('subsx'+expc.dataset.exp); if(sx){ var opening=(sx.style.display==='none'); sx.style.display=opening?'block':'none'; if(opening && !sx.querySelector('.subx:not(.addrow)')){ var ai=sx.querySelector('.subadd'); if(ai) setTimeout(function(){ai.focus();},50); } } return; }
     var sbx=t.closest('.subx[data-subx]');
     if(sbx){ e.stopPropagation(); var pr=sbx.dataset.subx.split(':'); var stk=tasks.find(function(x){return x.id===+pr[0];});
-      if(stk&&stk.subs[+pr[1]]){ stk.subs[+pr[1]].d=!stk.subs[+pr[1]].d; stampDone(stk); rerenderKeepOpen(); } return; }
+      if(stk&&stk.subs[+pr[1]]){ stk.subs[+pr[1]].d=!stk.subs[+pr[1]].d; stampDone(stk); rerenderKeepOpen(); if(window.__commit)window.__commit(); } return; }
     var ckTask=t.closest('.ck[data-ck]');
-    if(ckTask){ e.stopPropagation(); var dt=tasks.find(function(x){return x.id===+ckTask.dataset.ck;}); if(dt){ if(dt.subs&&dt.subs.length){ var tgt=!computeDone(dt); dt.subs.forEach(function(s){s.d=tgt;}); dt.done=tgt; } else { dt.done=!dt.done; } stampDone(dt); rerenderKeepOpen(); } return; }
+    if(ckTask){ e.stopPropagation(); var dt=tasks.find(function(x){return x.id===+ckTask.dataset.ck;}); if(dt){ if(dt.subs&&dt.subs.length){ var tgt=!computeDone(dt); dt.subs.forEach(function(s){s.d=tgt;}); dt.done=tgt; } else { dt.done=!dt.done; } stampDone(dt); rerenderKeepOpen(); if(window.__commit)window.__commit(); } return; }
     // decorative / milestone checkbox
     var ck=t.closest('.ck, .ms .hbox');
     if(ck){ e.stopPropagation(); var rowy=ck.closest('.row, .ms'); if(rowy) rowy.classList.toggle(rowy.classList.contains('ms')?'on':'done'); ck.classList.toggle('on'); return; }
@@ -2778,7 +2854,7 @@
   function tombItem(x){ if(x&&x.uid){ __tombs.push({uid:x.uid,ts:Date.now()}); } }
   window.__tombItem=tombItem;
   var __rev=0;
-  function snapshot(){ return {v:3, rev:__rev, ts:__lastChangeTs||Date.now(), theme:curTheme(), tombs:__tombs, tasks:tasks, routines:routines, projects:projects, distractions:distractions, top3:top3, levers:levers, notifRead:notifRead, ctr:{nextId:nextId,nextPid:nextPid,nextMid:nextMid,nextRid:nextRid,nextDid:nextDid}}; }
+  function snapshot(){ return {v:3, rev:__rev, ts:__lastChangeTs||Date.now(), theme:curTheme(), tombs:__tombs, tasks:tasks, routines:routines, projects:projects, distractions:distractions, notes:notes, top3:top3, levers:levers, notifRead:notifRead, ctr:{nextId:nextId,nextPid:nextPid,nextMid:nextMid,nextRid:nextRid,nextDid:nextDid,nextNoteId:nextNoteId}}; }
   function mergeSnaps(a,b){  // per-item union; newer mt wins; tombstones beat older items
     if(!a) return b; if(!b) return a;
     var newer = (a.ts||0)>=(b.ts||0)? a : b;
@@ -2797,7 +2873,7 @@
     }
     var m={v:3, rev:maxRev, ts:Math.max(a.ts||0,b.ts||0), theme:newer.theme,
       tombs:Object.keys(tombs).map(function(u){return {uid:u,ts:tombs[u]};}).slice(-300),
-      tasks:mergeCol(a.tasks,b.tasks), routines:mergeCol(a.routines,b.routines),
+      tasks:mergeCol(a.tasks,b.tasks), routines:mergeCol(a.routines,b.routines), notes:mergeCol(a.notes,b.notes),
       projects:mergeCol(a.projects,b.projects), distractions:mergeCol(a.distractions,b.distractions),
       top3:newer.top3, levers:newer.levers, notifRead:Object.assign({},a.notifRead||{},b.notifRead||{}),
       ctr:{}};
@@ -2807,9 +2883,9 @@
   window.__mergeSnaps=mergeSnaps;
   function applySnap(s, doRender){ if(!s) return;
       function repl(arr,d){ if(!Array.isArray(d))return; arr.length=0; d.forEach(function(x){arr.push(x);}); }
-      repl(tasks,s.tasks); repl(routines,s.routines); repl(projects,s.projects); repl(distractions,s.distractions); repl(top3,s.top3); while(top3.length<3) top3.push(null); if(top3.length>3) top3.length=3;
+      repl(tasks,s.tasks); repl(routines,s.routines); repl(projects,s.projects); repl(distractions,s.distractions); if(s.notes) repl(notes,s.notes); repl(top3,s.top3); while(top3.length<3) top3.push(null); if(top3.length>3) top3.length=3;
       if(s.levers)Object.assign(levers,s.levers); if(s.notifRead)Object.assign(notifRead,s.notifRead);
-      if(s.ctr){ nextId=s.ctr.nextId||nextId; nextPid=s.ctr.nextPid||nextPid; nextMid=s.ctr.nextMid||nextMid; nextRid=s.ctr.nextRid||nextRid; nextDid=s.ctr.nextDid||nextDid; }
+      if(s.ctr){ nextId=s.ctr.nextId||nextId; nextPid=s.ctr.nextPid||nextPid; nextMid=s.ctr.nextMid||nextMid; nextRid=s.ctr.nextRid||nextRid; nextDid=s.ctr.nextDid||nextDid; nextNoteId=s.ctr.nextNoteId||nextNoteId; }
       if(typeof s.theme==='string') setTheme(s.theme);
       if(s.tombs) __tombs=s.tombs;
       if(typeof s.rev==='number') __rev=s.rev;
@@ -2824,15 +2900,15 @@
   function persistTick(){ rollRoutines(); syncGroom(); var c=__sig(); if(c!==__lastSig){ __lastSig=c; __lastChangeTs=Date.now(); window.__lastEdit=Date.now(); saveLocal(); if(window.__cloudSave) window.__cloudSave(); } }
   // expose for the cloud layer
   window.__snapshot=snapshot; window.__applySnap=applySnap; window.__loadLocal=loadLocal; window.__saveLocal=saveLocal;
-  window.__commit=function(){ __lastChangeTs=Date.now(); window.__lastEdit=Date.now(); saveLocal(); __lastSig=__sig(); if(window.__cloudSave) window.__cloudSave(); };
+  window.__commit=function(){ try{ syncGroom(); }catch(e){} __lastChangeTs=Date.now(); window.__lastEdit=Date.now(); __lastSig=__sig(); saveLocal(); if(window.__cloudSave) window.__cloudSave(); };
 
   var __boot=loadLocal(); if(__boot){ applySnap(__boot, false); __lastChangeTs=__boot.ts||0; }
   try{ if(localStorage.getItem('lifeos_tombreset')!=='v14'){ __tombs=[]; localStorage.setItem('lifeos_tombreset','v14'); } }catch(e){}
   rollRoutines();
-  renderTop3(); renderTasks(); renderDayCal(); renderTodayBrain(); initCalDrag(); renderProjects(); renderSlipping(); renderWaiting(); renderRoutines(); renderDistractions(); renderDashboard(); renderDateNav(); renderTodayHead(); updateBell();
+  renderTop3(); renderTasks(); renderDayCal(); renderTodayBrain(); initCalDrag(); renderProjects(); renderSlipping(); renderWaiting(); renderRoutines(); renderDistractions(); renderDashboard(); renderLibrary(); renderDateNav(); renderTodayHead(); updateBell();
   __lastSig=__sig();
   try{ var _v=localStorage.getItem('lifeos_view'); if(_v && _v!=='today' && document.getElementById(_v) && document.getElementById(_v).classList.contains('view')) go(_v); }catch(e){}
-  setInterval(persistTick, 2500);
+  setInterval(persistTick, 1200);
   window.addEventListener('beforeunload', persistTick);
   document.addEventListener('visibilitychange', function(){
     if(document.hidden){ persistTick(); }
@@ -2859,7 +2935,7 @@
   var user=null, __session=null;
   sb.auth.onAuthStateChange(function(_e, s){ __session=s; if(s&&s.access_token){ try{ sb.realtime.setAuth(s.access_token); }catch(e){} } });
 
-  var APP_VER='v21';
+  var APP_VER='v25';
   function nowHM(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function taskCount(){ try{ return (window.__snapshot().tasks||[]).length; }catch(e){ return '?'; } }
   function syncStat(msg){ var el=document.getElementById('syncStat'); if(el){
