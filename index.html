@@ -25,11 +25,11 @@
     --m:#B98A3C; --h:#3F756A; --r:#2F4A6B; --s:#6E5C86; --l:#8E4B3C; --sp:#5C6B57;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#c9c9c6;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14.5px;line-height:1.5}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14.5px;line-height:1.5}
   .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:500}
   .serif{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.025em}
 
-  .app{display:flex;max-width:1400px;height:94vh;margin:3vh auto;background:var(--canvas);box-shadow:0 24px 60px -22px rgba(0,0,0,.4)}
+  .app{display:flex;width:100%;max-width:1180px;height:100vh;margin:0 auto;background:var(--canvas)}
   @media(max-width:1180px){ body{padding:0} .app{max-width:none;height:100dvh;margin:0;box-shadow:none} }
   @media(min-width:921px) and (max-width:1180px){
     .side{width:200px}
@@ -2948,7 +2948,7 @@
   var user=null, __session=null;
   sb.auth.onAuthStateChange(function(_e, s){ __session=s; if(s&&s.access_token){ try{ sb.realtime.setAuth(s.access_token); }catch(e){} } });
 
-  var APP_VER='v27';
+  var APP_VER='v28';
   function nowHM(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function taskCount(){ try{ return (window.__snapshot().tasks||[]).length; }catch(e){ return '?'; } }
   function syncStat(msg){ var el=document.getElementById('syncStat'); if(el){
