@@ -2224,7 +2224,7 @@
         html+='<div class="rrow">'+
           '<span class="rcheck'+(r.done?' on':'')+'" data-rtog="'+r.id+'"></span>'+
           '<span class="rdot" style="background:'+(SEC[r.sec]?SEC[r.sec][1]:'var(--faint)')+'"></span>'+
-          '<span class="rname'+(r.done?' done':'')+'" data-ropen="'+r.id+'">'+r.title+'<small>'+fmtHour(r.hour)+'</small></span>'+
+          '<span class="rname'+(r.done?' done':'')+'" data-ropen="'+r.id+'">'+r.title+'<small>'+fmtHour(r.hour)+((r.notes&&r.notes.length)?' · &#128172;'+r.notes.length:'')+'</small></span>'+
           '<div class="rdots">'+dots+'</div>'+
           '<span class="rrowstreak">&#128293;'+rStreak(r)+'</span></div>';
       });
@@ -2252,8 +2252,21 @@
     body+='<div class="sh" style="margin-top:24px"><span class="lbl">Last 30 days</span></div><div class="rdots" style="display:flex;flex-wrap:wrap;gap:3px">';
     for(var i=HN-30;i<HN;i++){ body+='<i class="'+(r.hist[i]?'on':'miss')+'" style="width:8px;height:16px;border-radius:2px;background:'+(r.hist[i]?'var(--ink2)':'transparent')+';box-shadow:'+(r.hist[i]?'none':'inset 0 0 0 1px var(--line)')+'"></i>'; }
     body+='</div>';
+    // ---- dated notes / comments log ----
+    body+='<div class="sh" style="margin-top:28px"><span class="lbl">Notes</span></div>';
+    body+='<div style="display:flex;gap:8px;margin:8px 0 6px"><input id="rnInput" class="in" placeholder="e.g. did 15 of 30 min today" style="flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addRoutineNote();}"/><button class="cap-btn accent" onclick="addRoutineNote()">Add</button></div>';
+    var rnotes=(r.notes||[]).slice().sort(function(a,b){ return (b.mt||0)-(a.mt||0); });
+    if(rnotes.length){ body+=rnotes.map(function(nt){ return '<div style="padding:10px 0;border-top:1px solid var(--line);display:flex;gap:10px;align-items:flex-start"><div style="flex:1"><div style="font-size:10.5px;color:var(--faint);font-family:\'IBM Plex Mono\',monospace;letter-spacing:.04em">'+fmtDate(nt.date)+'</div><div style="font-size:14px;color:var(--ink);margin-top:3px;line-height:1.5;white-space:pre-wrap">'+esc(nt.text)+'</div></div><span onclick="delRoutineNote('+(nt.mt||0)+')" style="color:var(--muted);cursor:pointer;font-size:11px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:.06em">Delete</span></div>'; }).join(''); }
+    else { body+='<div style="color:var(--muted);font-size:13px;padding:4px 0;line-height:1.5">No notes yet. Jot how today went — it builds a log you can look back on.</div>'; }
     document.getElementById('rdBody').innerHTML=body;
   }
+  function addRoutineNote(){ var inp=document.getElementById('rnInput'); if(!inp) return; var v=(inp.value||'').trim(); if(!v) return;
+    var r=routines.find(function(x){return x.id===rdId;}); if(!r) return;
+    r.notes=r.notes||[]; r.notes.push({date:todayStr(), text:v, mt:Date.now()}); r.mt=Date.now();
+    inp.value=''; renderRoutineDetail(); renderRoutines(); if(window.__commit) window.__commit(); }
+  function delRoutineNote(mt){ var r=routines.find(function(x){return x.id===rdId;}); if(!r||!r.notes) return;
+    r.notes=r.notes.filter(function(n){return (n.mt||0)!==mt;}); r.mt=Date.now();
+    renderRoutineDetail(); renderRoutines(); if(window.__commit) window.__commit(); }
 
   var __editRoutineId=null, __durMin=30, DURMAP={'15 min':0.25,'30 min':0.5,'45 min':0.75,'1 hour':1,'1.5 hours':1.5};
   function fmtDur(min){ var h=Math.floor(min/60), m=min%60; return h?(m?h+'h '+m+'m':h+'h'):m+'m'; }
@@ -2935,7 +2948,7 @@
   var user=null, __session=null;
   sb.auth.onAuthStateChange(function(_e, s){ __session=s; if(s&&s.access_token){ try{ sb.realtime.setAuth(s.access_token); }catch(e){} } });
 
-  var APP_VER='v25';
+  var APP_VER='v27';
   function nowHM(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function taskCount(){ try{ return (window.__snapshot().tasks||[]).length; }catch(e){ return '?'; } }
   function syncStat(msg){ var el=document.getElementById('syncStat'); if(el){
@@ -2947,7 +2960,10 @@
       var cloud=r&&r.data&&r.data.data;
       var mine=window.__snapshot();
       var out = (cloud&&window.__mergeSnaps)? window.__mergeSnaps(cloud,mine) : mine;
-      if(JSON.stringify(out)!==JSON.stringify(mine)){ window.__applySnap(out,true); if(window.__saveLocal) window.__saveLocal(); }
+      // fold in cloud-only items locally, but never rebuild the UI while the user is mid-action
+      if(!userBusy() && contentKey(out)!==contentKey(mine)){ window.__applySnap(out,true); if(window.__saveLocal) window.__saveLocal(); }
+      // write ONLY when our content genuinely differs from cloud (no timestamp-only writes)
+      if(contentKey(out)===contentKey(cloud)){ __saving=false; if(__saveAgain){ __saveAgain=false; cloudSave(); } return; }
       out._wv=APP_VER; return sb.from('app_state').upsert({user_id:user.id,data:out}).then(function(r2){
         __saving=false;
         if(r2&&r2.error){ syncStat('Push error: '+r2.error.message); } else { syncStat('\u2191 Pushed '+((out.tasks||[]).length)+' tasks · '+nowHM()); }
@@ -2967,22 +2983,28 @@
       .subscribe(function(st){ if(st==='SUBSCRIBED') syncStat('\u25CF Live sync ON · '+nowHM()); else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT') syncStat('Live sync failed ('+st+') — using 8s polling'); });
   }
   window.__startRealtime=startRealtime;
-  function cloudLoad(){ if(!user) return; return sb.from('app_state').select('data').eq('user_id',user.id).maybeSingle().then(function(r){
+  // content signature — ignores volatile fields (ts/rev/mt) so we only react to REAL changes
+  function contentKey(s){ if(!s) return ''; function st(a){ return (a||[]).map(function(o){ var c=Object.assign({},o); delete c.mt; return c; }); } try{ return JSON.stringify({t:st(s.tasks),r:st(s.routines),p:st(s.projects),d:st(s.distractions),n:st(s.notes),top3:s.top3,lev:s.levers,tomb:(s.tombs||[]).map(function(x){return x.uid;})}); }catch(e){ return Math.random()+''; } }
+  function userBusy(){ var ae=document.activeElement; return (Date.now()-(window.__lastEdit||0) < 4000) || (ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)); }
+  function cloudLoad(){ if(!user) return;
+    if(userBusy()) return;                         // never disturb the screen mid-action
+    return sb.from('app_state').select('data').eq('user_id',user.id).maybeSingle().then(function(r){
       if(r&&r.error){ syncStat('Pull err: '+r.error.message); return; }
       var cloud = r&&r.data&&r.data.data;
       var local = window.__snapshot ? window.__snapshot() : null;
       if(!cloud){ cloudSave(); return; }
+      if(userBusy()) return;                        // re-check after the network round-trip
       if((cloud.rev||0) > (local.rev||0)){ window.__applySnap(cloud, true); if(window.__saveLocal) window.__saveLocal(); syncStat('\u21ba Reset from cloud — '+((cloud.tasks||[]).length)+' tasks · '+nowHM()); return; }
       var merged = window.__mergeSnaps ? window.__mergeSnaps(cloud, local) : cloud;
-      var mj=JSON.stringify(merged), lj=JSON.stringify(local);
-      var changed=(mj!==lj);
-      if(changed){ if(Date.now()-(window.__lastEdit||0) < 3500){ if(window.__cloudSave) window.__cloudSave(); } else { window.__applySnap(merged, true); if(window.__saveLocal) window.__saveLocal(); } }
-      if(mj!==JSON.stringify(cloud)){ try{ merged._wv=APP_VER; sb.from('app_state').upsert({user_id:user.id,data:merged}).then(function(){},function(){}); }catch(e){} }
-      syncStat((changed?'\u2193 Pulled — now ':'\u2713 In sync — ')+((merged.tasks||[]).length)+' tasks · '+nowHM());
+      var ck_m=contentKey(merged), ck_l=contentKey(local), ck_c=contentKey(cloud);
+      if(ck_m!==ck_l){ window.__applySnap(merged, true); if(window.__saveLocal) window.__saveLocal(); syncStat('\u2193 Updated — '+((merged.tasks||[]).length)+' tasks · '+nowHM()); }
+      else { syncStat('\u2713 In sync — '+((merged.tasks||[]).length)+' tasks · '+nowHM()); }
+      // push up ONLY when our content genuinely differs from cloud (never on timestamp-only churn)
+      if(ck_m!==ck_c){ try{ merged._wv=APP_VER; sb.from('app_state').upsert({user_id:user.id,data:merged}).then(function(){},function(){}); }catch(e){} }
     }, function(){ syncStat('Pull failed — offline?'); }); }
   window.addEventListener('beforeunload', function(){ try{cloudSave();}catch(e){} });
   window.__cloudPull=function(){ if(user) cloudLoad(); };
-  setInterval(function(){ if(user && !document.hidden) cloudLoad(); }, 2000);
+  setInterval(function(){ if(user && !document.hidden) cloudLoad(); }, 15000);
 
   // ---- auth UI ----
   document.body.insertAdjacentHTML('beforeend',
