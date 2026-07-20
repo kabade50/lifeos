@@ -1312,20 +1312,21 @@
     var right='';
     right+= hasSubs
       ? '<span class="stepsct" data-exp="'+t.id+'">'+doneCt+'/'+t.subs.length+'</span>'
-      : '<span class="stepsct ghost" data-exp="'+t.id+'">+ steps</span>';
-    if(t.sec) right+='<span class="dot" style="background:'+SEC[t.sec][1]+';margin-right:0"></span>';
-    if(t.due==='overdue') right+='<span class="rmeta over">'+(t.od?t.od+'d over':'over')+'</span>';
+      : '<span class="stepsct ghost" data-exp="'+t.id+'">+</span>';
+
+    if(t.repeat&&t.repeat!=='none') right+='<span class="rmeta" title="repeats">&#8635;</span>';
+    if(t.due==='overdue') right+='<span class="rmeta over">'+(t.od?t.od+' OD':'OD')+'</span>';
     else if(t.due==='today') right+='<span class="rmeta due">today</span>';
     else if(t.time) right+='<span class="rmeta">'+t.time.replace(' min','m').replace(' hours','h').replace(' hour','h')+'</span>';
-    else right+='<span class="rmeta"></span>';
+
     right+='<span class="rpri'+(t.prio==='p1'?' hot':'')+'">'+(t.prio?t.prio.toUpperCase():'')+'</span>';
-    var tag = (t.tags&&t.tags.length)?'<span class="rtag">#'+t.tags[0]+'</span>':'';
+    var tag = '';
     var subsHtml='<div class="subsx" id="subsx'+t.id+'" style="display:none">'+
         (t.subs||[]).map(function(s,i){return '<div class="subx'+(s.d?' done':'')+'" data-subx="'+t.id+':'+i+'"><span class="sbx">'+(s.d?'&#10003;':'')+'</span><span>'+s.t+'</span></div>';}).join('')+
         '<div class="subx addrow"><span class="sbx" style="border-style:dashed"></span><input class="subadd" data-addsub="'+t.id+'" placeholder="add step…" enterkeyhint="done" autocomplete="off"></div>'+
       '</div>';
     return '<div class="row'+(isDone?' done':'')+'" onclick="openView('+t.id+')">'+lead+
-      '<div class="ti"><span class="tt">'+(t.title||'Untitled')+'</span>'+tag+'</div>'+
+      '<div class="ti"><span class="tt">'+(t.title||'Untitled')+'</span></div>'+
       '<div class="rdata">'+right+'</div>'+
       '<span class="star'+(on?'':' off')+'" onclick="event.stopPropagation();starToggle(this)" data-uid="'+(t.uid||'')+'">'+(on?'\u2605':'\u2606')+'</span></div>'+subsHtml;
   }
@@ -1335,7 +1336,7 @@
     var vis=tasks.filter(function(t){
       if(fStatus==='open'&&t.done) return false;
       if(fStatus==='done'&&!t.done) return false;
-      if(q && (t.title||'').toLowerCase().indexOf(q)<0) return false;
+      if(q){ var hay=((t.title||'')+' '+((t.tags||[]).join(' '))+' '+((t.subs||[]).map(function(x){return x.t||x.title||'';}).join(' '))+' '+(t.project||'')).toLowerCase(); if(hay.indexOf(q)<0) return false; }
       if(!passesFilters(t)) return false;
       return true;
     });
@@ -1415,6 +1416,37 @@
     if(t.due==='overdue') p.push('<span class="due">Overdue '+(t.od||'')+'d</span>');
     return p.join('');
   }
+  function isoAdd(iso, kind){ var d=new Date((iso||todayStr())+'T00:00:00');
+    if(kind==='tomorrow'){ d.setDate(d.getDate()+1); }
+    else if(kind==='weekend'){ do{ d.setDate(d.getDate()+1); }while(d.getDay()!==6); }
+    else if(kind==='daily'){ d.setDate(d.getDate()+1); }
+    else if(kind==='weekdays'){ do{ d.setDate(d.getDate()+1); }while(d.getDay()===0||d.getDay()===6); }
+    else if(kind==='weekly'){ d.setDate(d.getDate()+7); }
+    else if(kind==='monthly'){ d.setMonth(d.getMonth()+1); }
+    return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+  function quickPlan(id, when){ var t=tasks.find(function(x){return x.id===id;}); if(!t) return;
+    var day = when==='today'?todayStr() : when==='tomorrow'?isoAdd(todayStr(),'tomorrow') : when==='weekend'?isoAdd(todayStr(),'weekend') : null;
+    if(day===null){ t.schedDate=null; t.schedHour=null; }         // Someday = unschedule
+    else { t.schedDate=day; if(t.schedHour==null) t.schedHour=9; } // land it on that day (9 AM default)
+    renderToday(); renderTasks(); openView(id); if(window.__commit) window.__commit(); }
+  function setRepeat(id, rep){ var t=tasks.find(function(x){return x.id===id;}); if(!t) return; t.repeat=rep; t.mt=Date.now(); openView(id); if(window.__commit) window.__commit(); }
+  function spawnRecur(t){ if(!t.repeat || t.repeat==='none') return;
+    var base=t.schedDate||todayStr(); var next=isoAdd(base, t.repeat);
+    tasks.push({ id:nextId++, uid:genUid(), mt:Date.now(), created:todayStr(), title:t.title, done:false,
+      subs:(t.subs||[]).map(function(x){return {t:(x.t||x.title||''),d:false};}), tags:(t.tags||[]).slice(),
+      sec:t.sec, prio:t.prio, time:t.time, project:t.project, milestone:t.milestone,
+      repeat:t.repeat, schedHour:t.schedHour, schedDate:next });
+    t.repeat='none'; }                                            // completed copy stops repeating
+  function viewPlanHTML(t){
+    var days=[['today','Today'],['tomorrow','Tomorrow'],['weekend','Weekend'],['someday','Someday']];
+    var cur = t.schedDate===todayStr()?'today' : (t.schedDate===isoAdd(todayStr(),'tomorrow')?'tomorrow' : (t.schedDate?'':'someday'));
+    var reps=[['none','Once'],['daily','Daily'],['weekdays','Weekdays'],['weekly','Weekly'],['monthly','Monthly']];
+    var rp=t.repeat||'none';
+    return '<div class="sh" style="margin-top:22px"><span class="lbl">Plan / reschedule</span></div>'+
+      '<div class="fgrow" style="margin-top:8px">'+days.map(function(d){return '<span class="fp'+(cur===d[0]?' on':'')+'" onclick="quickPlan('+t.id+',\''+d[0]+'\')">'+d[1]+'</span>';}).join('')+'</div>'+
+      '<div class="sh" style="margin-top:18px"><span class="lbl">Repeats</span></div>'+
+      '<div class="fgrow" style="margin-top:8px">'+reps.map(function(rr){return '<span class="fp'+(rp===rr[0]?' on':'')+'" onclick="setRepeat('+t.id+',\''+rr[0]+'\')">'+rr[1]+'</span>';}).join('')+'</div>';
+  }
   function openView(id){
     curTask=tasks.find(function(t){return t.id===id;}); if(!curTask) return go('tasks');
     showOnly('taskview');
@@ -1428,6 +1460,7 @@
         vs.innerHTML='<div class="schedrow"><span class="schedchip">On '+dayLbl+' · '+h12+mm+' '+ap+'</span><button class="cap-btn ghost sm" onclick="unschedule('+curTask.id+')">Remove from calendar</button></div>'; }
       else vs.innerHTML='<div class="schedrow"><button class="cap-btn ghost sm" onclick="scheduleFromView('+curTask.id+')">Add to calendar</button></div>';
       if(curTask.delegate&&curTask.delegate.to){ vs.innerHTML+='<div class="schedrow"><span class="schedchip" style="background:rgba(176,92,67,.12);color:var(--brick)">&#8594; '+curTask.delegate.to+' · follows up '+fmtShort(curTask.delegate.follow)+'</span></div>'; }
+      vs.innerHTML+=viewPlanHTML(curTask);
     }
     renderViewSubs();
   }
@@ -1899,6 +1932,7 @@
     var done=computeDone(t);
     if(t.subs.length){ t.subs.forEach(function(s){s.d=!done;}); } else { t.done=!done; }
     stampDone(t);
+    if(computeDone(t) && t.repeat && t.repeat!=='none') spawnRecur(t);
   }
   // ---- drag-to-reschedule (pointer events: touch + mouse) ----
   function snapHour(px){ var h=CAL_START + px/HOUR_PX; h=Math.round(h*2)/2; return Math.max(CAL_START, Math.min(CAL_END, h)); }
@@ -2725,7 +2759,7 @@
     if(sbx){ e.stopPropagation(); var pr=sbx.dataset.subx.split(':'); var stk=tasks.find(function(x){return x.id===+pr[0];});
       if(stk&&stk.subs[+pr[1]]){ stk.subs[+pr[1]].d=!stk.subs[+pr[1]].d; stampDone(stk); rerenderKeepOpen(); if(window.__commit)window.__commit(); } return; }
     var ckTask=t.closest('.ck[data-ck]');
-    if(ckTask){ e.stopPropagation(); var dt=tasks.find(function(x){return x.id===+ckTask.dataset.ck;}); if(dt){ if(dt.subs&&dt.subs.length){ var tgt=!computeDone(dt); dt.subs.forEach(function(s){s.d=tgt;}); dt.done=tgt; } else { dt.done=!dt.done; } stampDone(dt); rerenderKeepOpen(); if(window.__commit)window.__commit(); } return; }
+    if(ckTask){ e.stopPropagation(); var dt=tasks.find(function(x){return x.id===+ckTask.dataset.ck;}); if(dt){ if(dt.subs&&dt.subs.length){ var tgt=!computeDone(dt); dt.subs.forEach(function(s){s.d=tgt;}); dt.done=tgt; } else { dt.done=!dt.done; } stampDone(dt); if(computeDone(dt)&&dt.repeat&&dt.repeat!=='none') spawnRecur(dt); rerenderKeepOpen(); if(window.__commit)window.__commit(); } return; }
     // decorative / milestone checkbox
     var ck=t.closest('.ck, .ms .hbox');
     if(ck){ e.stopPropagation(); var rowy=ck.closest('.row, .ms'); if(rowy) rowy.classList.toggle(rowy.classList.contains('ms')?'on':'done'); ck.classList.toggle('on'); return; }
@@ -2938,6 +2972,18 @@
   renderTop3(); renderTasks(); renderDayCal(); renderTodayBrain(); initCalDrag(); renderProjects(); renderSlipping(); renderWaiting(); renderRoutines(); renderDistractions(); renderDashboard(); renderLibrary(); renderDateNav(); renderTodayHead(); updateBell();
   __lastSig=__sig();
   try{ var _v=localStorage.getItem('lifeos_view'); if(_v && _v!=='today' && document.getElementById(_v) && document.getElementById(_v).classList.contains('view')) go(_v); }catch(e){}
+  // ---- desktop keyboard shortcuts ----
+  document.addEventListener('keydown', function(e){
+    var ae=document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
+    if(e.key==='Escape'){ if(typing){ ae.blur(); } return; }
+    if(typing || e.metaKey || e.ctrlKey || e.altKey) return;
+    var map={ '1':'today','2':'tasks','3':'routines','4':'projects','5':'dashboard','6':'library' };
+    if(map[e.key]){ e.preventDefault(); go(map[e.key]); return; }
+    if(e.key==='/'){ e.preventDefault(); go('tasks'); var si=document.getElementById('taskSearch'); if(si){ si.focus(); si.select&&si.select(); } return; }
+    if(e.key==='n'||e.key==='N'){ e.preventDefault(); go('tasks'); var ci=document.getElementById('capNew'); if(ci) ci.focus(); return; }
+    if(e.key==='e'||e.key==='E'){ if(document.getElementById('taskview')&&document.getElementById('taskview').classList.contains('active')){ e.preventDefault(); editTask(); } return; }
+    if(e.key==='?'){ e.preventDefault(); openUI('Keyboard shortcuts','<div class="readonly-note" style="line-height:1.9"><b>1–6</b> switch tabs · <b>/</b> search · <b>n</b> new task · <b>e</b> edit open task · <b>Esc</b> close</div>', null); return; }
+  });
   setInterval(persistTick, 1200);
   window.addEventListener('beforeunload', persistTick);
   document.addEventListener('visibilitychange', function(){
@@ -2965,7 +3011,7 @@
   var user=null, __session=null;
   sb.auth.onAuthStateChange(function(_e, s){ __session=s; if(s&&s.access_token){ try{ sb.realtime.setAuth(s.access_token); }catch(e){} } });
 
-  var APP_VER='v32';
+  var APP_VER='v35';
   function nowHM(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function taskCount(){ try{ return (window.__snapshot().tasks||[]).length; }catch(e){ return '?'; } }
   function syncStat(msg){ var el=document.getElementById('syncStat'); if(el){
